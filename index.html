@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Study Buddy</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d2e;
+      --card: #1e2235;
+      --border: #2e3250;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --accent3: #ff6b6b;
+      --text: #e8eaf6;
+      --muted: #8892b0;
+      --success: #00d4aa;
+      --warn: #f7b731;
+    }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: .6rem; font-size: 1.2rem; font-weight: 700; }
+    .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .api-row { display: flex; align-items: center; gap: .5rem; }
+    .api-row label { font-size: .8rem; color: var(--muted); }
+    .api-row input {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      border-radius: 6px; padding: .35rem .7rem; font-size: .8rem; width: 260px;
+    }
+    .api-row input:focus { outline: none; border-color: var(--accent); }
+
+    /* ── Layout ── */
+    .layout { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 60px); }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.5rem 1rem;
+      display: flex; flex-direction: column; gap: .4rem;
+    }
+    .sidebar-title { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--muted); margin-bottom: .5rem; padding-left: .5rem; }
+    .nav-btn {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .65rem .8rem; border-radius: 8px; cursor: pointer;
+      border: none; background: transparent; color: var(--muted);
+      font-size: .9rem; text-align: left; width: 100%; transition: all .15s;
+    }
+    .nav-btn:hover { background: var(--card); color: var(--text); }
+    .nav-btn.active { background: rgba(108,99,255,.15); color: var(--accent); }
+    .nav-btn .icon { font-size: 1.1rem; width: 22px; text-align: center; }
+
+    /* ── Main ── */
+    main { padding: 2rem; overflow-y: auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: .4rem; }
+    .subtitle { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+
+    /* ── Notes Panel ── */
+    .notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.25rem;
+    }
+    .card h3 { font-size: .95rem; font-weight: 600; margin-bottom: .75rem; color: var(--text); }
+    textarea {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: .75rem; font-size: .88rem;
+      resize: vertical; min-height: 180px; font-family: inherit; line-height: 1.6;
+    }
+    textarea:focus { outline: none; border-color: var(--accent); }
+    textarea::placeholder { color: var(--muted); }
+
+    .upload-area {
+      border: 2px dashed var(--border); border-radius: 8px; padding: 2rem;
+      text-align: center; cursor: pointer; transition: border-color .15s;
+    }
+    .upload-area:hover { border-color: var(--accent); }
+    .upload-area input { display: none; }
+    .upload-area p { color: var(--muted); font-size: .88rem; margin-top: .5rem; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .6rem 1.2rem; border-radius: 8px; border: none;
+      font-size: .88rem; font-weight: 600; cursor: pointer; transition: all .15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #5a52e0; }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .btn-secondary:hover { background: #3a3f60; }
+    .btn-success { background: var(--accent2); color: #000; }
+    .btn-success:hover { background: #00b894; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .save-bar { display: flex; gap: .75rem; margin-top: 1rem; align-items: center; }
+    .saved-tag { font-size: .8rem; color: var(--success); display: none; }
+
+    /* ── Feature pages ── */
+    .feature-wrap { max-width: 820px; }
+    .topic-row { display: flex; gap: .75rem; margin-bottom: 1rem; }
+    .topic-row input {
+      flex: 1; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: .6rem .9rem; font-size: .9rem;
+    }
+    .topic-row input:focus { outline: none; border-color: var(--accent); }
+
+    .result-box {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.25rem; margin-top: 1rem; min-height: 100px;
+      font-size: .9rem; line-height: 1.8; color: var(--text);
+      white-space: pre-wrap; display: none;
+    }
+    .result-box.visible { display: block; }
+
+    /* Quiz */
+    .quiz-options { display: flex; gap: .75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+    .quiz-options label { color: var(--muted); font-size: .85rem; }
+    .quiz-options select {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      border-radius: 6px; padding: .4rem .7rem; font-size: .85rem;
+    }
+
+    .quiz-container { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
+    .q-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem;
+    }
+    .q-card .q-num { font-size: .75rem; color: var(--accent); font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em; margin-bottom: .4rem; }
+    .q-card .q-text { font-size: .92rem; font-weight: 500; margin-bottom: .75rem; }
+    .q-option {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .5rem .7rem; border-radius: 6px; cursor: pointer;
+      border: 1px solid transparent; font-size: .88rem;
+      transition: background .1s, border-color .1s;
+    }
+    .q-option:hover { background: rgba(108,99,255,.1); border-color: var(--accent); }
+    .q-option.correct { background: rgba(0,212,170,.15); border-color: var(--accent2); color: var(--accent2); }
+    .q-option.wrong { background: rgba(255,107,107,.15); border-color: var(--accent3); color: var(--accent3); }
+    .q-option input { accent-color: var(--accent); }
+    .q-explain { margin-top: .6rem; font-size: .82rem; color: var(--muted);
+      background: var(--bg); border-radius: 6px; padding: .5rem .75rem; display: none; }
+
+    /* Plan */
+    .plan-opts { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .plan-opts label { color: var(--muted); font-size: .85rem; }
+    .plan-opts input, .plan-opts select {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      border-radius: 6px; padding: .4rem .7rem; font-size: .85rem;
+    }
+    .week-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1rem; margin-bottom: .75rem;
+    }
+    .week-card .week-label {
+      font-size: .78rem; color: var(--accent); font-weight: 700;
+      text-transform: uppercase; letter-spacing: .06em; margin-bottom: .4rem;
+    }
+    .week-card ul { padding-left: 1.2rem; }
+    .week-card ul li { font-size: .88rem; margin-bottom: .25rem; line-height: 1.6; }
+
+    /* Chat */
+    .chat-wrap { display: flex; flex-direction: column; height: calc(100vh - 180px); }
+    .chat-messages {
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+      gap: .75rem; padding: 1rem; background: var(--card);
+      border: 1px solid var(--border); border-radius: 12px; margin-bottom: 1rem;
+    }
+    .msg { display: flex; gap: .75rem; max-width: 85%; }
+    .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+    .msg-bubble {
+      padding: .65rem 1rem; border-radius: 10px; font-size: .88rem; line-height: 1.7;
+    }
+    .msg.ai .msg-bubble { background: var(--surface); border: 1px solid var(--border); }
+    .msg.user .msg-bubble { background: var(--accent); color: #fff; }
+    .msg-avatar {
+      width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: .9rem;
+    }
+    .msg.ai .msg-avatar { background: rgba(108,99,255,.2); }
+    .msg.user .msg-avatar { background: rgba(108,99,255,.5); }
+    .chat-input-row { display: flex; gap: .75rem; }
+    .chat-input-row input {
+      flex: 1; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: 10px; padding: .75rem 1rem; font-size: .9rem;
+    }
+    .chat-input-row input:focus { outline: none; border-color: var(--accent); }
+
+    /* Loader */
+    .loader { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-bar { font-size: .8rem; color: var(--muted); display: flex; align-items: center; gap: .5rem; margin-top: .75rem; min-height: 20px; }
+
+    /* Score bar */
+    .score-bar { display: none; background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: .75rem 1.25rem; margin-top: .5rem;
+      font-size: .9rem; gap: 1rem; align-items: center; }
+    .score-bar.visible { display: flex; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); }
+      .notes-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🎓</div>
+    AI Study Buddy
+  </div>
+  <div class="api-row">
+    <label for="apiKey">Groq API Key</label>
+    <input type="text" id="apiKey" value="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" />
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-title">Menu</div>
+    <button class="nav-btn active" data-page="notes">
+      <span class="icon">📄</span> My Notes
+    </button>
+    <button class="nav-btn" data-page="explain">
+      <span class="icon">🧠</span> Explain It
+    </button>
+    <button class="nav-btn" data-page="quiz">
+      <span class="icon">✏️</span> Quiz Me
+    </button>
+    <button class="nav-btn" data-page="plan">
+      <span class="icon">📅</span> Study Plan
+    </button>
+    <button class="nav-btn" data-page="chat">
+      <span class="icon">💬</span> Doubt Chat
+    </button>
+  </nav>
+
+  <!-- Main content -->
+  <main>
+
+    <!-- ── NOTES ── -->
+    <div class="page active" id="page-notes">
+      <h2>My Notes &amp; Syllabus</h2>
+      <p class="subtitle">Paste your notes or upload a .txt / .md file. All features use this content.</p>
+      <div class="notes-grid">
+        <div class="card">
+          <h3>📝 Paste Notes</h3>
+          <textarea id="notesText" placeholder="Paste your syllabus, lecture notes, or study material here...&#10;&#10;Example:&#10;Chapter 1: Introduction to Photosynthesis&#10;- Plants convert sunlight to energy&#10;- Chlorophyll absorbs light..."></textarea>
+        </div>
+        <div class="card">
+          <h3>📂 Upload File</h3>
+          <label class="upload-area" id="uploadArea">
+            <input type="file" id="fileInput" accept=".txt,.md,.text" />
+            <div style="font-size:2rem">📁</div>
+            <strong>Click to upload</strong>
+            <p>Supports .txt and .md files</p>
+          </label>
+          <div style="margin-top:1rem">
+            <h3 style="margin-bottom:.5rem">📊 Stats</h3>
+            <div id="noteStats" style="font-size:.85rem; color:var(--muted); line-height:1.9">
+              No notes loaded yet.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="save-bar">
+        <button class="btn btn-primary" onclick="saveNotes()">💾 Save Notes</button>
+        <button class="btn btn-secondary" onclick="clearNotes()">🗑 Clear</button>
+        <span class="saved-tag" id="savedTag">✓ Saved!</span>
+      </div>
+    </div>
+
+    <!-- ── EXPLAIN ── -->
+    <div class="page" id="page-explain">
+      <div class="feature-wrap">
+        <h2>🧠 Explain Like I'm 10</h2>
+        <p class="subtitle">Enter any topic from your notes and get a super-simple explanation.</p>
+        <div class="topic-row">
+          <input type="text" id="explainTopic" placeholder="e.g. Photosynthesis, Newton's laws, World War II causes..." />
+          <button class="btn btn-primary" onclick="explainTopic()">✨ Explain</button>
+        </div>
+        <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.5rem">
+          <button class="btn btn-secondary" style="font-size:.8rem; padding:.4rem .8rem" onclick="setLevel('eli5')">🧒 ELI5</button>
+          <button class="btn btn-secondary" style="font-size:.8rem; padding:.4rem .8rem" onclick="setLevel('teen')">🧑 Teen</button>
+          <button class="btn btn-secondary" style="font-size:.8rem; padding:.4rem .8rem" onclick="setLevel('college')">🎓 College</button>
+        </div>
+        <div class="status-bar" id="explainStatus"></div>
+        <div class="result-box" id="explainResult"></div>
+      </div>
+    </div>
+
+    <!-- ── QUIZ ── -->
+    <div class="page" id="page-quiz">
+      <div class="feature-wrap">
+        <h2>✏️ Quiz Generator</h2>
+        <p class="subtitle">Auto-generate practice MCQ questions from your notes.</p>
+        <div class="quiz-options">
+          <div>
+            <label>Questions</label><br>
+            <select id="quizCount">
+              <option value="3">3</option>
+              <option value="5" selected>5</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+          <div>
+            <label>Topic (optional)</label><br>
+            <input type="text" id="quizTopic" placeholder="Leave blank for random" style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.4rem .7rem;font-size:.85rem;width:200px">
+          </div>
+          <div style="align-self:flex-end">
+            <button class="btn btn-primary" onclick="generateQuiz()">🎯 Generate Quiz</button>
+          </div>
+        </div>
+        <div class="status-bar" id="quizStatus"></div>
+        <div class="score-bar" id="scoreBar">
+          <span>🏆 Score:</span><strong id="scoreText">–</strong>
+          <button class="btn btn-secondary" style="font-size:.8rem;padding:.35rem .75rem;margin-left:auto" onclick="generateQuiz()">🔄 New Quiz</button>
+        </div>
+        <div class="quiz-container" id="quizContainer"></div>
+      </div>
+    </div>
+
+    <!-- ── PLAN ── -->
+    <div class="page" id="page-plan">
+      <div class="feature-wrap">
+        <h2>📅 Revision Plan</h2>
+        <p class="subtitle">Get a structured week-by-week study schedule based on your notes.</p>
+        <div class="plan-opts">
+          <div>
+            <label>Weeks available</label><br>
+            <select id="planWeeks">
+              <option value="1">1 week</option>
+              <option value="2" selected>2 weeks</option>
+              <option value="4">4 weeks</option>
+              <option value="8">8 weeks</option>
+            </select>
+          </div>
+          <div>
+            <label>Daily study hours</label><br>
+            <input type="number" id="planHours" value="2" min="1" max="10"
+              style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.4rem .7rem;font-size:.85rem;width:80px">
+          </div>
+          <div>
+            <label>Exam / Goal date</label><br>
+            <input type="text" id="planGoal" placeholder="e.g. Final exam, Midterm"
+              style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.4rem .7rem;font-size:.85rem;width:180px">
+          </div>
+          <div style="align-self:flex-end">
+            <button class="btn btn-success" onclick="generatePlan()">📋 Generate Plan</button>
+          </div>
+        </div>
+        <div class="status-bar" id="planStatus"></div>
+        <div id="planContainer"></div>
+      </div>
+    </div>
+
+    <!-- ── CHAT ── -->
+    <div class="page" id="page-chat">
+      <h2>💬 Doubt Solving Chat</h2>
+      <p class="subtitle">Ask anything about your notes. The AI answers only from your uploaded content.</p>
+      <div class="chat-wrap">
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg ai">
+            <div class="msg-avatar">🤖</div>
+            <div class="msg-bubble">Hi! I'm your AI Study Buddy. Upload your notes first, then ask me anything about them. I'll help you understand concepts, clarify doubts, and quiz you!</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="Ask a doubt about your notes..." onkeydown="if(event.key==='Enter')sendChat()" />
+          <button class="btn btn-primary" onclick="sendChat()">Send ➤</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ──────────────────────────────────────────
+//  State
+// ──────────────────────────────────────────
+let notes = localStorage.getItem('sb_notes') || '';
+let explainLevel = 'eli5';
+let currentQuiz = [];
+let chatHistory = [];
+
+// Restore notes on load
+if (notes) {
+  document.getElementById('notesText').value = notes;
+  updateStats();
+}
+
+// ──────────────────────────────────────────
+//  Navigation
+// ──────────────────────────────────────────
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-' + btn.dataset.page).classList.add('active');
+  });
+});
+
+// ──────────────────────────────────────────
+//  Notes
+// ──────────────────────────────────────────
+document.getElementById('notesText').addEventListener('input', updateStats);
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('notesText').value = ev.target.result;
+    updateStats();
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('uploadArea').addEventListener('dragover', e => {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'var(--accent)';
+});
+document.getElementById('uploadArea').addEventListener('dragleave', e => {
+  e.currentTarget.style.borderColor = 'var(--border)';
+});
+document.getElementById('uploadArea').addEventListener('drop', e => {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'var(--border)';
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('notesText').value = ev.target.result;
+    updateStats();
+  };
+  reader.readAsText(file);
+});
+
+function updateStats() {
+  const text = document.getElementById('notesText').value;
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const chars = text.length;
+  const lines = text.trim() ? text.trim().split('\n').length : 0;
+  document.getElementById('noteStats').innerHTML =
+    `📝 <b>${words}</b> words &nbsp;|&nbsp; 🔤 <b>${chars}</b> chars &nbsp;|&nbsp; 📄 <b>${lines}</b> lines`;
+}
+
+function saveNotes() {
+  notes = document.getElementById('notesText').value;
+  localStorage.setItem('sb_notes', notes);
+  const tag = document.getElementById('savedTag');
+  tag.style.display = 'inline';
+  setTimeout(() => tag.style.display = 'none', 2000);
+  updateStats();
+}
+
+function clearNotes() {
+  if (confirm('Clear all notes?')) {
+    document.getElementById('notesText').value = '';
+    notes = '';
+    localStorage.removeItem('sb_notes');
+    updateStats();
+  }
+}
+
+// ──────────────────────────────────────────
+//  LLM helper
+// ──────────────────────────────────────────
+async function callLLM(messages, onChunk) {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) throw new Error('Please enter your Groq API key in the header.');
+
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      stream: true,
+      temperature: 0.7,
+      max_tokens: 1200
+    })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${res.status}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6).trim();
+      if (data === '[DONE]') return;
+      try {
+        const json = JSON.parse(data);
+        const chunk = json.choices?.[0]?.delta?.content;
+        if (chunk) onChunk(chunk);
+      } catch {}
+    }
+  }
+}
+
+function getNotes() {
+  return document.getElementById('notesText').value.trim() || notes.trim();
+}
+
+function requireNotes() {
+  if (!getNotes()) throw new Error('No notes found. Please add your notes on the "My Notes" page first.');
+}
+
+// ──────────────────────────────────────────
+//  Explain
+// ──────────────────────────────────────────
+function setLevel(lvl) {
+  explainLevel = lvl;
+  document.querySelectorAll('#page-explain .btn-secondary').forEach(b => {
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--muted)';
+  });
+  event.target.style.borderColor = 'var(--accent)';
+  event.target.style.color = 'var(--accent)';
+}
+
+async function explainTopic() {
+  const topic = document.getElementById('explainTopic').value.trim();
+  if (!topic) return alert('Please enter a topic to explain.');
+
+  const levelMap = {
+    eli5: 'Explain this to a 5-year-old child using very simple words and fun analogies. Use short sentences.',
+    teen: 'Explain this to a 14-year-old teenager. Use relatable examples and avoid heavy jargon.',
+    college: 'Explain this to a college student with some background knowledge. Be thorough but clear.'
+  };
+
+  const statusEl = document.getElementById('explainStatus');
+  const resultEl = document.getElementById('explainResult');
+  statusEl.innerHTML = '<div class="loader"></div> Generating explanation...';
+  resultEl.classList.remove('visible');
+  resultEl.textContent = '';
+
+  const userNotes = getNotes();
+  const notesCtx = userNotes
+    ? `\n\nHere are the student's notes for context:\n---\n${userNotes.slice(0, 3000)}\n---`
+    : '';
+
+  try {
+    await callLLM([
+      { role: 'system', content: `You are a friendly, expert tutor. ${levelMap[explainLevel]} Always use analogies and examples. Keep your answer under 300 words.` },
+      { role: 'user', content: `Explain: "${topic}"${notesCtx}` }
+    ], chunk => {
+      resultEl.textContent += chunk;
+      resultEl.classList.add('visible');
+    });
+    statusEl.innerHTML = '✓ Done';
+  } catch (e) {
+    statusEl.innerHTML = '❌ ' + e.message;
+  }
+}
+
+// ──────────────────────────────────────────
+//  Quiz
+// ──────────────────────────────────────────
+async function generateQuiz() {
+  try { requireNotes(); } catch(e) { return alert(e.message); }
+
+  const count = document.getElementById('quizCount').value;
+  const topic = document.getElementById('quizTopic').value.trim();
+  const statusEl = document.getElementById('quizStatus');
+  const container = document.getElementById('quizContainer');
+
+  statusEl.innerHTML = '<div class="loader"></div> Generating quiz...';
+  container.innerHTML = '';
+  document.getElementById('scoreBar').classList.remove('visible');
+  currentQuiz = [];
+
+  const topicLine = topic ? `Focus only on the topic: "${topic}".` : 'Cover a range of topics from the notes.';
+
+  let raw = '';
+  try {
+    await callLLM([
+      { role: 'system', content: `You are a quiz generator. Return ONLY a valid JSON array (no markdown, no extra text). Each item has: "question" (string), "options" (array of 4 strings), "answer" (0-indexed integer of correct option), "explanation" (string, 1-2 sentences).` },
+      { role: 'user', content: `Generate ${count} multiple-choice questions from these notes.\n${topicLine}\n\nNotes:\n---\n${getNotes().slice(0, 4000)}\n---` }
+    ], chunk => { raw += chunk; });
+
+    const jsonMatch = raw.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('Invalid response format. Try again.');
+    currentQuiz = JSON.parse(jsonMatch[0]);
+    renderQuiz(currentQuiz);
+    statusEl.innerHTML = `✓ ${currentQuiz.length} questions generated`;
+  } catch(e) {
+    statusEl.innerHTML = '❌ ' + e.message;
+  }
+}
+
+function renderQuiz(questions) {
+  const container = document.getElementById('quizContainer');
+  container.innerHTML = '';
+  questions.forEach((q, qi) => {
+    const card = document.createElement('div');
+    card.className = 'q-card';
+    card.innerHTML = `
+      <div class="q-num">Question ${qi + 1}</div>
+      <div class="q-text">${escHtml(q.question)}</div>
+      ${q.options.map((opt, oi) => `
+        <div class="q-option" data-qi="${qi}" data-oi="${oi}" onclick="checkAnswer(this, ${qi}, ${oi})">
+          <input type="radio" name="q${qi}" value="${oi}" /> ${escHtml(opt)}
+        </div>
+      `).join('')}
+      <div class="q-explain" id="explain-${qi}">💡 ${escHtml(q.explanation || '')}</div>
+    `;
+    container.appendChild(card);
+  });
+
+  const submitBtn = document.createElement('button');
+  submitBtn.className = 'btn btn-success';
+  submitBtn.textContent = '🏆 Submit & See Score';
+  submitBtn.onclick = showScore;
+  container.appendChild(submitBtn);
+}
+
+function checkAnswer(el, qi, oi) {
+  const card = el.closest('.q-card');
+  card.querySelectorAll('.q-option').forEach(o => {
+    o.classList.remove('correct', 'wrong');
+    o.style.pointerEvents = 'none';
+  });
+  const correct = currentQuiz[qi].answer;
+  card.querySelectorAll('.q-option')[correct].classList.add('correct');
+  if (oi !== correct) el.classList.add('wrong');
+  document.getElementById('explain-' + qi).style.display = 'block';
+  el.querySelector('input').checked = true;
+}
+
+function showScore() {
+  let score = 0;
+  currentQuiz.forEach((q, qi) => {
+    const checked = document.querySelector(`input[name="q${qi}"]:checked`);
+    if (checked && parseInt(checked.value) === q.answer) score++;
+  });
+  const bar = document.getElementById('scoreBar');
+  const emoji = score === currentQuiz.length ? '🎉' : score >= currentQuiz.length / 2 ? '👍' : '📖';
+  document.getElementById('scoreText').textContent = `${score} / ${currentQuiz.length}  ${emoji}`;
+  bar.classList.add('visible');
+  bar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ──────────────────────────────────────────
+//  Study Plan
+// ──────────────────────────────────────────
+async function generatePlan() {
+  try { requireNotes(); } catch(e) { return alert(e.message); }
+
+  const weeks = document.getElementById('planWeeks').value;
+  const hours = document.getElementById('planHours').value;
+  const goal = document.getElementById('planGoal').value.trim() || 'upcoming exam';
+  const statusEl = document.getElementById('planStatus');
+  const container = document.getElementById('planContainer');
+
+  statusEl.innerHTML = '<div class="loader"></div> Building your study plan...';
+  container.innerHTML = '';
+
+  let raw = '';
+  try {
+    await callLLM([
+      { role: 'system', content: `You are an expert study planner. Return ONLY a valid JSON array (no markdown). Each item represents one week and has: "week" (number), "theme" (string, short title), "tasks" (array of strings, daily tasks for that week). Keep tasks specific and actionable.` },
+      { role: 'user', content: `Create a ${weeks}-week study plan for a student preparing for "${goal}".\nThey can study ${hours} hours per day.\nBase the plan on these notes:\n---\n${getNotes().slice(0, 4000)}\n---` }
+    ], chunk => { raw += chunk; });
+
+    const jsonMatch = raw.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('Invalid response format. Try again.');
+    const plan = JSON.parse(jsonMatch[0]);
+    renderPlan(plan);
+    statusEl.innerHTML = `✓ ${plan.length}-week plan ready`;
+  } catch(e) {
+    statusEl.innerHTML = '❌ ' + e.message;
+  }
+}
+
+function renderPlan(plan) {
+  const container = document.getElementById('planContainer');
+  container.innerHTML = '';
+  plan.forEach(week => {
+    const card = document.createElement('div');
+    card.className = 'week-card';
+    card.innerHTML = `
+      <div class="week-label">Week ${week.week} — ${escHtml(week.theme || '')}</div>
+      <ul>${(week.tasks || []).map(t => `<li>${escHtml(t)}</li>`).join('')}</ul>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// ──────────────────────────────────────────
+//  Doubt Chat
+// ──────────────────────────────────────────
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  appendMsg('user', msg);
+  chatHistory.push({ role: 'user', content: msg });
+
+  const thinkingId = appendMsg('ai', '...', true);
+
+  const userNotes = getNotes();
+  const systemPrompt = userNotes
+    ? `You are a helpful AI study buddy. Answer student questions ONLY based on the notes provided below. If the answer is not in the notes, say so and provide a brief general answer.\n\nStudent Notes:\n---\n${userNotes.slice(0, 4000)}\n---`
+    : `You are a helpful AI study buddy. Help the student with their question. Recommend they upload their notes for more personalized help.`;
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...chatHistory.slice(-8)
+  ];
+
+  let reply = '';
+  const bubbleEl = document.getElementById(thinkingId);
+
+  try {
+    await callLLM(messages, chunk => {
+      reply += chunk;
+      bubbleEl.textContent = reply;
+      scrollChat();
+    });
+    chatHistory.push({ role: 'assistant', content: reply });
+  } catch(e) {
+    bubbleEl.textContent = '❌ ' + e.message;
+  }
+}
+
+function appendMsg(role, text, isStreaming = false) {
+  const id = 'msg-' + Date.now();
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role === 'ai' ? '🤖' : '👤'}</div>
+    <div class="msg-bubble" id="${id}">${escHtml(text)}</div>
+  `;
+  document.getElementById('chatMessages').appendChild(div);
+  scrollChat();
+  return id;
+}
+
+function scrollChat() {
+  const el = document.getElementById('chatMessages');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ──────────────────────────────────────────
+//  Utilities
+// ──────────────────────────────────────────
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
